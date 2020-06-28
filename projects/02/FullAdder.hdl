@@ -7,11 +7,29 @@
  * Computes the sum of three bits.
  */
 
+/* Truth Table
+        ~    This part is half adder    ~
+|   a   |   b   |   c   |  sum1  | carry1 |
+|   0   |   0   |   0   |   0   |   0   |
+|   0   |   0   |   1   |   1   |   0   |
+|   0   |   1   |   0   |   1   |   0   |
+|   0   |   1   |   1   |   0   |   1   |
+    a       b       c      sum    carry 
+|   1   |   0   |   0   |   1   |   0   |
+|   1   |   0   |   1   |   0   |   1   |
+|   1   |   1   |   0   |   0   |   1   |
+|   1   |   1   |   1   |   1   |   1   |
+*/
+
+// sum is  sum1 XOR a
+// carry is OR(carry1, AND(sum1,a))
+
 CHIP FullAdder {
     IN a, b, c;  // 1-bit inputs
     OUT sum,     // Right bit of a + b + c
         carry;   // Left bit of a + b + c
-
     PARTS:
-    // Put you code here:
+    HalfAdder(a=b, b=c, sum=sum1, carry=carry1);
+    HalfAdder(a=a, b=sum1, sum=sum, carry=docarry);
+    Or(a=carry1, b=docarry, out=carry);
 }
