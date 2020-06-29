@@ -25,9 +25,7 @@ CHIP PC {
     OUT out[16];
 
     PARTS:
-    Not(in=inc, out=notInc);
     Not(in=load, out=notLoad);
-    And(a=load, b=notInc, out=loadNotInc);
     And(a=inc, b=notLoad, out = incNotLoad);
     Or(a=reset, b=load, out=sel0);
     Or(a=reset, b=incNotLoad, out=sel1);
