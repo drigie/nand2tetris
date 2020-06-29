@@ -11,16 +11,27 @@
  * else                    out[t+1] = out[t]
  */
 
+/* pack reset, load, inc, default, into 3 bit sel)
+    00 - default  sel[0] = reset OR (load and not inc)
+    01 - load     sel[1] = reset OR (inc and not load) 
+    10 - inc
+    11 - reset 
+*/
+
+
+
 CHIP PC {
     IN in[16],load,inc,reset;
     OUT out[16];
 
     PARTS:
-    Mux16(a=in, b=false, sel=reset, out=in1);
-    Or(a=load, b=reset, out=loadOrReset);
-    Not(in=loadOrReset, out=notLoadOrReset);
-    Register(in=in1, load=notLoadOrReset, out=out1);
-    Inc16(in=out1, out=out2);
-    Mux16(a=out1, b=out2, sel=inc, out=out);
-    
+    Not(in=inc, out=notInc);
+    Not(in=load, out=notLoad);
+    And(a=load, b=notInc, out=loadNotInc);
+    And(a=inc, b=notLoad, out = incNotLoad);
+    Or(a=reset, b=load, out=sel0);
+    Or(a=reset, b=incNotLoad, out=sel1);
+    Mux4Way16(a=loop, b=in, c=plusone, d=false, sel[0]=sel0, sel[1]=sel1, out=feedreg);
+    Register(in=feedreg, load=true, out=out, out=loop);
+    Inc16(in=loop, out=plusone);    
 }
