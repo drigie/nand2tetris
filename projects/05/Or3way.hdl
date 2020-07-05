@@ -1,0 +1,14 @@
+ /**
+ * Or2way gate:
+ * out = 1 if a==1, or b==1, or c==1
+ *       0 otherwise
+ */
+
+CHIP Or3way {
+    IN a, b, c;
+    OUT out;
+
+    PARTS:
+    Or(a=a, b=b, out=aorb);
+    Or(a=aorb, b=c, out=out);
+}

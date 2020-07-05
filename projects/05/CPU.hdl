@@ -53,28 +53,29 @@ CHIP CPU {
             
     // instruction execution
     Mux16(a=regA, b=inM, sel=instruction[12], out=temp); // y <-- A or M
-    ALU(x=regD, y=temp, zx=instruction[11], // c1
-                     nx=instruction[10], // c2
-                     zy=instruction[9],  // c3
-                     ny=instruction[8],  // c4
-                     f=instruction[7],   // c5
-                     no=instruction[6],  // c6
-                     out=aluout, zr=isZero, ng=isNeg);
+    ALU(x=regD, y=temp,   zx=instruction[11], // c1
+                          nx=instruction[10], // c2
+                          zy=instruction[9],  // c3
+                          ny=instruction[8],  // c4
+                           f=instruction[7],   // c5
+                          no=instruction[6],  // c6
+                     out=aluout, out=outM, zr=isZero, ng=isNeg);
 
     // Register Storage
     Mux16(a=aluout, b=instruction, sel=isA, out=intoA);
     Or(a=isA, b=instruction[5], out=loadA);
     ARegister(in=intoA, load=loadA, out=regA, out[0..14]=addressM);
-    DRegister(in=aluout, load=instruction[4], out=regD);
-    Xor(a=false, b=instruction[3], out=writeM);
+    And(a=isC, b=instruction[4], out=storeD);
+    DRegister(in=aluout, load=storeD, out=regD);
+    And(a=isC, b=instruction[3], out=writeM);
 
     // jump logic
-    Not(in=isNeg, out=isPos);
+    Nor(a=isNeg, b=isZero, out=isPos);
     And(a=instruction[0], b=isPos, out=jgt); 
     And(a=instruction[1], b=isZero, out=jeq);
     And(a=instruction[2], b=isNeg, out=jlt);
-    Or(a=jgt, b=jeq, out=j1);
-    Or(a=jeq, b=jlt, out=j2);
-    Or(a=j1,b=j2,out=jmp);
-    PC(in=regA, load=jmp, inc=true, reset=reset, out[0..14]=pc);        
+    Or3way(a=jgt, b=jeq, c=jlt, out=jmp);
+    And(a=isC, b=jmp, out=doJMP);
+
+    PC(in=regA, load=doJMP, inc=true, reset=reset, out[0..14]=pc);        
 }
