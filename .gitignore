@@ -1,4 +1,2 @@
 Download/
-/tools/bin/Assembler.dat
-/tools/bin/CPU Emulator.dat
-/tools/bin/Hardware Simulator.dat
+/tools/bin/*.dat
