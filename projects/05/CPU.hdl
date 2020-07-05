@@ -8,22 +8,30 @@
  * two registers named A and D, and a program counter named PC.
  * The CPU is designed to fetch and execute instructions written in 
  * the Hack machine language. In particular, functions as follows:
- * Executes the inputted instruction according to the Hack machine 
+ *
+ * Executes the instruction according to the Hack machine 
  * language specification. The D and A in the language specification
  * refer to CPU-resident registers, while M refers to the external
  * memory location addressed by A, i.e. to Memory[A]. The inM input 
- * holds the value of this location. If the current instruction needs 
+ * holds the value of this location. 
+ *
+ * If the current instruction needs 
  * to write a value to M, the value is placed in outM, the address 
  * of the target location is placed in the addressM output, and the 
  * writeM control bit is asserted. (When writeM==0, any value may 
- * appear in outM). The outM and writeM outputs are combinational: 
+ * appear in outM). 
+ *
+ * The outM and writeM outputs are combinational: 
  * they are affected instantaneously by the execution of the current 
  * instruction. The addressM and pc outputs are clocked: although they 
  * are affected by the execution of the current instruction, they commit 
- * to their new values only in the next time step. If reset==1 then the 
+ * to their new values only in the next time step. 
+ *
+ * If reset==1 then the 
  * CPU jumps to address 0 (i.e. pc is set to 0 in next time step) rather 
  * than to the address resulting from executing the current instruction. 
  */
+
 
 CHIP CPU {
 
@@ -39,5 +47,34 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+
+    // instruction decoding
+    DMux(in=true, sel=instruction[15], a=isA, b=isC);
+            
+    // instruction execution
+    Mux16(a=regA, b=inM, sel=instruction[12], out=temp); // y <-- A or M
+    ALU(x=regD, y=temp, zx=instruction[11], // c1
+                     nx=instruction[10], // c2
+                     zy=instruction[9],  // c3
+                     ny=instruction[8],  // c4
+                     f=instruction[7],   // c5
+                     no=instruction[6],  // c6
+                     out=aluout, zr=isZero, ng=isNeg);
+
+    // Register Storage
+    Mux16(a=aluout, b=instruction, sel=isA, out=intoA);
+    Or(a=isA, b=instruction[5], out=loadA);
+    ARegister(in=intoA, load=loadA, out=regA, out[0..14]=addressM);
+    DRegister(in=aluout, load=instruction[4], out=regD);
+    Xor(a=false, b=instruction[3], out=writeM);
+
+    // jump logic
+    Not(in=isNeg, out=isPos);
+    And(a=instruction[0], b=isPos, out=jgt); 
+    And(a=instruction[1], b=isZero, out=jeq);
+    And(a=instruction[2], b=isNeg, out=jlt);
+    Or(a=jgt, b=jeq, out=j1);
+    Or(a=jeq, b=jlt, out=j2);
+    Or(a=j1,b=j2,out=jmp);
+    PC(in=regA, load=jmp, inc=true, reset=reset, out[0..14]=pc);        
 }
