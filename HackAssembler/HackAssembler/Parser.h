@@ -44,6 +44,7 @@ static bool isCommandC(const std::string& s,
                        std::string& jump);
 static bool isDigit(const char c);
 static bool isNumeric(const std::string& s);
+static uint16_t str2num(const std::string& s);
 static bool isSymbol(const std::string& s);
 static bool isDestMnemonic(const char c);
 static bool isDestMnemonic(const std::string& s);

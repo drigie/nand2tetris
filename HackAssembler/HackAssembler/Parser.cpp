@@ -268,7 +268,7 @@ void Parser::run() {
         advance();
         if (!sanitize(m_cmd)){ continue; }
         if ( isCommandA(m_cmd, sym) ) {
-            uint16_t d = static_cast<uint16_t>(std::stoul(sym));
+            uint16_t d = Parser::str2num(sym);
             result = Code::toBinary(d);
         } else if ( isCommandC(m_cmd, dest, comp, jump) ) {
             // LOG << "comp=" << comp << " dest=" << dest << " jump=" << jump;
@@ -284,6 +284,15 @@ void Parser::run() {
             println(result);
         }
     }
+}
+
+uint16_t Parser::str2num(const std::string& s) {
+    if ( Parser::isNumeric(s) ){
+        return static_cast<uint16_t>(std::stoul(s));
+    }
+    LOG << "Cannot convert non-numeric '" << s << "' to decimal";
+    throw std::runtime_error("Invalid numeric string!");
+    return -1;
 }
 
 void Parser::println(const std::string& s) {
