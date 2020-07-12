@@ -24,7 +24,8 @@ using stringMap = std::map<std::string, std::string>;
 class Parser{
 public:
 Parser();
-Parser(const std::string& filepath);
+Parser(const std::string& inFile);
+Parser(const std::string& inFile, const std::string& outFile);
 void loadFile(const std::string& filepath);
 bool hasMoreCommands() const; 
 bool advance(); /// reads next command and assigns to m_cmd
@@ -55,8 +56,11 @@ void run();
 
 private:
 std::string m_cmd; /// current command 
-std::ifstream m_file; /// input filestream
+std::ifstream m_inFile; /// input filestream
+std::ofstream m_outFile; /// output filestream
+std::ostream* m_outputStream; 
 bool readLine(std::string& line);
+void println(const std::string& s);
 uint64_t m_lineno = 0;
 static bool isSymbolChar(const char x);
 static bool getDest(const std::string& s, std::string& dest);

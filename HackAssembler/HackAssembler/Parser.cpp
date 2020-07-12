@@ -77,14 +77,6 @@ std::string Code::getJump(const std::string& jumpMnemonic) {
     }  
 }
 
-// std::string Code::toBinary(uint16_t n) {
-//     std::string r;
-//     while(n!=0) {
-//         r=(n%2==0 ?"0":"1")+r; 
-//         n/=2;
-//     }
-//     return r;
-// }
 std::string Code::toBinary(uint16_t n) {
     if (n > MAX_INT) {
         throw std::runtime_error("Cannot represent numbers larger than " 
@@ -98,6 +90,16 @@ Parser::Parser() : m_lineno(0) {}
 
 Parser::Parser(const std::string& filepath) : m_lineno(0) {
     loadFile(filepath);
+    std::string outFile = filepath.substr(0, filepath.find(".asm")) + ".hack";
+    m_outFile = std::ofstream(outFile);
+    m_outputStream = &m_outFile;
+    //m_outputStream = &std::cout; 
+}
+
+Parser::Parser(const std::string& inFile, const std::string& outFile) : m_lineno(0) {
+    loadFile(inFile);
+    m_outFile = std::ofstream(outFile);
+    m_outputStream = &m_outFile;
 }
 
 std::string Parser::commandTypeString(const CommandType t) {
@@ -114,7 +116,7 @@ std::string Parser::commandTypeString(const CommandType t) {
 }
 
 void Parser::loadFile(const std::string& filepath){
-    m_file = std::ifstream(filepath);
+    m_inFile = std::ifstream(filepath);
 }
 
 bool Parser::sanitize(std::string& cmd) {
@@ -138,15 +140,15 @@ bool Parser::advance(){
 }
 
 bool Parser::hasMoreCommands() const{
-    return (m_file.is_open() && !m_file.eof());
+    return (m_inFile.is_open() && !m_inFile.eof());
 }
 
 bool Parser::readLine(std::string& line){
-    if (!m_file.is_open()){
+    if (!m_inFile.is_open()){
         LOG << "Could not open file!";
         return false;
     }
-    if (!std::getline(m_file, line)) {
+    if (!std::getline(m_inFile, line)) {
         return false;
     }
     return true;
@@ -278,8 +280,14 @@ void Parser::run() {
             LOG << "Failed to parse command: " << m_cmd;
             throw std::runtime_error("Unrecognized command type!");
         }
-        std::cout << result << std::endl;
+        if (!result.empty()){
+            println(result);
+        }
     }
+}
+
+void Parser::println(const std::string& s) {
+    *m_outputStream << s << std::endl;
 }
 
 std::string Parser::getCmd() const{ return m_cmd; }
