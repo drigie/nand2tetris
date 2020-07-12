@@ -84,6 +84,6 @@ namespace Code{
 std::string getDest(const std::string& destMnemonic);
 std::string getComp(const std::string& compMnemonic);
 std::string getJump(const std::string& jumpMnemonic);
+std::string toBinary(uint16_t n);
 }
-
 }

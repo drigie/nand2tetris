@@ -2,6 +2,7 @@
 #include <iostream>
 #include <algorithm>
 #include <functional>
+#include <bitset>
 
 using namespace Hack;
 
@@ -57,6 +58,19 @@ std::string Code::getComp(const std::string& compMnemonic) {
 std::string Code::getJump(const std::string& jumpMnemonic) {
     std::string bits = Parser::JUMP_MNEMONICS.at(jumpMnemonic);
     return bits;
+}
+
+// std::string Code::toBinary(uint16_t n) {
+//     std::string r;
+//     while(n!=0) {
+//         r=(n%2==0 ?"0":"1")+r; 
+//         n/=2;
+//     }
+//     return r;
+// }
+std::string Code::toBinary(uint16_t n) {
+    std::bitset<16> b(n);
+    return b.to_string();
 }
 
 Parser::Parser() : m_lineno(0) {}
