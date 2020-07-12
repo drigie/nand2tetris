@@ -3,11 +3,13 @@
 #include <algorithm>
 #include <functional>
 #include <bitset>
+#include <exception>
 
 using namespace Hack;
 
 const charset Parser::SYMBOL_CHARS = {'_', '.', '$', ':'};
 const stringMap Parser::DEST_MNEMONICS = {
+    {"",    "000"},
     {"M",   "001"}, 
     {"D",   "010"},
     {"MD",  "011"},
@@ -48,16 +50,31 @@ const stringMap Parser::COMP_MNEMONICS = {
 };
 
 std::string Code::getDest(const std::string& destMnemonic) {
-    std::string bits = Parser::DEST_MNEMONICS.at(destMnemonic);
-    return bits;    
+    try {
+        std::string bits = Parser::DEST_MNEMONICS.at(destMnemonic);
+        return bits;  
+    } catch (std::exception& e) {
+        LOG << "Key '" << destMnemonic << "' not found in map";
+        throw(e);
+    }  
 }
 std::string Code::getComp(const std::string& compMnemonic) {
-    std::string bits = Parser::COMP_MNEMONICS.at(compMnemonic);
-    return bits;
+    try {
+        std::string bits = Parser::COMP_MNEMONICS.at(compMnemonic);
+        return bits;  
+    } catch (std::exception& e) {
+        LOG << "Key '" << compMnemonic << "' not found in map";
+        throw(e);
+    }  
 }
 std::string Code::getJump(const std::string& jumpMnemonic) {
-    std::string bits = Parser::JUMP_MNEMONICS.at(jumpMnemonic);
-    return bits;
+    try {
+        std::string bits = Parser::JUMP_MNEMONICS.at(jumpMnemonic);
+        return bits;  
+    } catch (std::exception& e) {
+        LOG << "Key '" << jumpMnemonic << "' not found in map";
+        throw(e);
+    }  
 }
 
 // std::string Code::toBinary(uint16_t n) {
@@ -69,6 +86,10 @@ std::string Code::getJump(const std::string& jumpMnemonic) {
 //     return r;
 // }
 std::string Code::toBinary(uint16_t n) {
+    if (n > MAX_INT) {
+        throw std::runtime_error("Cannot represent numbers larger than " 
+                                 + std::to_string(MAX_INT));
+    }
     std::bitset<16> b(n);
     return b.to_string();
 }
@@ -183,7 +204,7 @@ bool Parser::isCommandL(const std::string& s, std::string& sym) {
 }
 
 bool Parser::getDest(const std::string& s, std::string& dest) {
-    auto pos = s.find(s, '=');
+    auto pos = s.find('=');
     dest = "";
     if ( pos == std::string::npos ){ // '=' not found
         return false;
@@ -193,7 +214,7 @@ bool Parser::getDest(const std::string& s, std::string& dest) {
 }
 
 bool Parser::getJump(const std::string& s, std::string& jump) {
-    auto pos = s.find(s, ';');
+    auto pos = s.find(';');
     jump = "";
     if (pos == std::string::npos){ // '=' not found
         return false;
@@ -210,8 +231,10 @@ bool Parser::isCommandC(const std::string& s,
                         std::string& jump) {
     bool hasDest = getDest(s, dest);
     bool hasJump = getJump(s, jump);
-    size_t compLength = s.length() - dest.length() - jump.length();
-    comp = s.substr(dest.length(), compLength);
+    size_t destLength = (hasDest) ? (dest.length() + 1) : 0; // add one for '='
+    size_t jumpLength = (hasJump) ? (jump.length() + 1) : 0; // add one for ';'
+    size_t compLength = s.length() - destLength - jumpLength;
+    comp = s.substr(destLength, compLength);
     return (
             (dest.empty() || Parser::isDestMnemonic(dest))
         &&  Parser::isCompMnemonic(comp)
@@ -221,20 +244,42 @@ bool Parser::isCommandC(const std::string& s,
 
 bool Parser::isDestMnemonic(const std::string& s) {
     return ( !s.empty() &&
-             DEST_MNEMONICS.find(s) == DEST_MNEMONICS.end()
+             DEST_MNEMONICS.find(s) != DEST_MNEMONICS.end()
         );
 }
 
 bool Parser::isJumpMnemonic(const std::string& s) {
     return ( !s.empty() &&
-             JUMP_MNEMONICS.find(s) == JUMP_MNEMONICS.end()
+             JUMP_MNEMONICS.find(s) != JUMP_MNEMONICS.end()
         );
 }
 
 bool Parser::isCompMnemonic(const std::string& s) {
     return ( !s.empty() &&
-             COMP_MNEMONICS.find(s) == COMP_MNEMONICS.end()
+             COMP_MNEMONICS.find(s) != COMP_MNEMONICS.end()
         );
+}
+
+void Parser::run() {
+    std::string sym, dest, comp, jump, result;
+    while (hasMoreCommands()) {
+        advance();
+        if (!sanitize(m_cmd)){ continue; }
+        if ( isCommandA(m_cmd, sym) ) {
+            uint16_t d = static_cast<uint16_t>(std::stoul(sym));
+            result = Code::toBinary(d);
+        } else if ( isCommandC(m_cmd, dest, comp, jump) ) {
+            // LOG << "comp=" << comp << " dest=" << dest << " jump=" << jump;
+            result = "111" + Code::getComp(comp) + Code::getDest(dest) + Code::getJump(jump);
+        } else if ( isCommandL(m_cmd, sym) ) {
+            LOG << "Failed to parse command: " << m_cmd;
+            throw std::runtime_error("Command type not implemented yet: " + commandTypeString(CommandType::L_COMMAND));
+        } else {
+            LOG << "Failed to parse command: " << m_cmd;
+            throw std::runtime_error("Unrecognized command type!");
+        }
+        std::cout << result << std::endl;
+    }
 }
 
 std::string Parser::getCmd() const{ return m_cmd; }

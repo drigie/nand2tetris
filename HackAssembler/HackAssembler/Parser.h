@@ -51,6 +51,7 @@ static bool isCompMnemonic(const std::string& s);
 static const stringMap DEST_MNEMONICS;
 static const stringMap JUMP_MNEMONICS;
 static const stringMap COMP_MNEMONICS;
+void run();
 
 private:
 std::string m_cmd; /// current command 
@@ -73,14 +74,7 @@ static const charset DEST_CHARS;
 };
 
 namespace Code{
-//template <class T>
-// bool Code::toggleBit(std::string& bitstring, size_t pos, T c) {
-//     if (bitstring.find(c) != std::string::npos) {
-//         bitstring.replace(pos, 1, "1");
-//         return true;
-//     }
-//     return false;
-// }
+const uint16_t MAX_INT = 32767u; // 2^15 - 1 is maximum integer representable by 15 bits
 std::string getDest(const std::string& destMnemonic);
 std::string getComp(const std::string& compMnemonic);
 std::string getJump(const std::string& jumpMnemonic);
