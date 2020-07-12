@@ -2,6 +2,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <map>
 #define NO_PATH_FILE (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define LOG_PREAMBLE std::endl << NO_PATH_FILE << ":" << __func__ << ":" << __LINE__ << " - "
 #define LOG std::cout << LOG_PREAMBLE
@@ -18,6 +19,7 @@ namespace Hack{
 
 using charset = std::vector<char>;
 using stringset = std::vector<std::string>;
+using stringMap = std::map<std::string, std::string>;
 
 class Parser{
 public:
@@ -46,6 +48,9 @@ static bool isDestMnemonic(const char c);
 static bool isDestMnemonic(const std::string& s);
 static bool isJumpMnemonic(const std::string& s);
 static bool isCompMnemonic(const std::string& s);
+static const stringMap DEST_MNEMONICS;
+static const stringMap JUMP_MNEMONICS;
+static const stringMap COMP_MNEMONICS;
 
 private:
 std::string m_cmd; /// current command 
@@ -62,19 +67,23 @@ static bool any_of(T v, std::vector<T> allowed_vals){
     return std::any_of(allowed_vals.begin(), allowed_vals.end(), 
                        [v](const T x){ return (v==x); });
 }
-
+static bool sanitize(std::string& cmd); /// remove spaces and comments (true if result not empty)
 static const charset SYMBOL_CHARS;
 static const charset DEST_CHARS;
-static const stringset DEST_MNEMONICS;
-static const stringset JUMP_MNEMONICS;
-static const stringset COMP_MNEMONICS;
-
 };
 
 namespace Code{
-std::string getDest(std::string destMnemonic);
-std::string getComp(std::string compMnemonic);
-std::string getJump(std::string jumpMnemonic);
+//template <class T>
+// bool Code::toggleBit(std::string& bitstring, size_t pos, T c) {
+//     if (bitstring.find(c) != std::string::npos) {
+//         bitstring.replace(pos, 1, "1");
+//         return true;
+//     }
+//     return false;
+// }
+std::string getDest(const std::string& destMnemonic);
+std::string getComp(const std::string& compMnemonic);
+std::string getJump(const std::string& jumpMnemonic);
 }
 
 }

@@ -6,24 +6,58 @@
 using namespace Hack;
 
 const charset Parser::SYMBOL_CHARS = {'_', '.', '$', ':'};
-const stringset Parser::DEST_MNEMONICS = {
-    "M", "D", "MD", "A", "AM", "AD", "AMD"
+const stringMap Parser::DEST_MNEMONICS = {
+    {"M",   "001"}, 
+    {"D",   "010"},
+    {"MD",  "011"},
+    {"A",   "100"},
+    {"AM",  "101"},
+    {"AD",  "110"},
+    {"AMD",  "111"}
 };
-const stringset Parser::JUMP_MNEMONICS = {
-    "JGT",
-    "JEQ",
-    "JGE",
-    "JLT",
-    "JNE",
-    "JLE",
-    "JMP"
+const stringMap Parser::JUMP_MNEMONICS = {
+    {"",    "000"},
+    {"JGT", "001"},
+    {"JEQ", "010"},
+    {"JGE", "011"},
+    {"JLT", "100"},
+    {"JNE", "101"},
+    {"JLE", "110"},
+    {"JMP", "111"}
 };
-const stringset Parser::COMP_MNEMONICS = {
-    "0","1","D","A","!D","!A","-D","-A","D+1","A+1",
-    "D-1", "A-1","D+A", "D-A", "A-D", "D&A", "D|A",
-    "M", "!M", "-M", "M+1", "M-1", "D+M", "D-M", "M-D",
-    "D&M", "D|M"
+const stringMap Parser::COMP_MNEMONICS = {
+    {"0",   "0101010"},
+    {"1",   "0111111"},
+    {"-1",  "0111010"},
+    {"D",   "0001100"},
+    {"A",   "0110000"}, {"M", "1110000"},
+    {"!D",  "0001101"},
+    {"!A",  "0110001"}, {"!M", "1110001"},
+    {"-D",  "0001111"},
+    {"-A",  "0101010"}, {"-M", "1101010"},
+    {"D+1", "0011111"},
+    {"A+1", "0110111"}, {"M+1", "1110111"},
+    {"D-1", "0001110"},
+    {"A-1", "0110010"}, {"M-1", "1110010"},
+    {"D+A", "0000010"}, {"D+M", "1000010"},
+    {"D-A", "0010011"}, {"D-M", "1010011"},
+    {"A-D", "0000111"}, {"M-D", "1000111"},
+    {"D&A", "0000000"}, {"D&M", "1000000"},
+    {"D|A", "0010101"}, {"D|M", "1010101"}
 };
+
+std::string Code::getDest(const std::string& destMnemonic) {
+    std::string bits = Parser::DEST_MNEMONICS.at(destMnemonic);
+    return bits;    
+}
+std::string Code::getComp(const std::string& compMnemonic) {
+    std::string bits = Parser::COMP_MNEMONICS.at(compMnemonic);
+    return bits;
+}
+std::string Code::getJump(const std::string& jumpMnemonic) {
+    std::string bits = Parser::JUMP_MNEMONICS.at(jumpMnemonic);
+    return bits;
+}
 
 Parser::Parser() : m_lineno(0) {}
 
@@ -46,6 +80,18 @@ std::string Parser::commandTypeString(const CommandType t) {
 
 void Parser::loadFile(const std::string& filepath){
     m_file = std::ifstream(filepath);
+}
+
+bool Parser::sanitize(std::string& cmd) {
+    // Remove comments
+    size_t commentBegin = cmd.find("//");
+    if (commentBegin != std::string::npos) {
+        cmd = cmd.substr(0, commentBegin);
+    }
+    // Removes spaces
+    auto isspace = [](char c){ return std::isspace(c); };
+    cmd.erase(std::remove_if(cmd.begin(), cmd.end(), isspace), cmd.end());
+    return !cmd.empty();
 }
 
 bool Parser::advance(){
@@ -135,7 +181,7 @@ bool Parser::getDest(const std::string& s, std::string& dest) {
 bool Parser::getJump(const std::string& s, std::string& jump) {
     auto pos = s.find(s, ';');
     jump = "";
-    if ( (pos == std::string::npos) ){ // '=' not found
+    if (pos == std::string::npos){ // '=' not found
         return false;
     }
     if (pos < (s.length()-1)) {
@@ -160,18 +206,22 @@ bool Parser::isCommandC(const std::string& s,
 }
 
 bool Parser::isDestMnemonic(const std::string& s) {
-    return Parser::any_of(s, DEST_MNEMONICS);
+    return ( !s.empty() &&
+             DEST_MNEMONICS.find(s) == DEST_MNEMONICS.end()
+        );
 }
 
 bool Parser::isJumpMnemonic(const std::string& s) {
-    return Parser::any_of(s, JUMP_MNEMONICS);
+    return ( !s.empty() &&
+             JUMP_MNEMONICS.find(s) == JUMP_MNEMONICS.end()
+        );
 }
 
 bool Parser::isCompMnemonic(const std::string& s) {
-    return Parser::any_of(s, COMP_MNEMONICS);
+    return ( !s.empty() &&
+             COMP_MNEMONICS.find(s) == COMP_MNEMONICS.end()
+        );
 }
-
-
 
 std::string Parser::getCmd() const{ return m_cmd; }
 uint64_t Parser::getLineNumber() const { return m_lineno; }
