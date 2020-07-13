@@ -22,8 +22,9 @@ int main(int argc, char** argv) {
         parser->run();
     } catch (std::exception& e) {
         LOG_ERR << "Encountered exception on line (" 
-                << parser->getLineNumber() 
-                << "): " << e.what();
+                << parser->getLineNumber() << "): " 
+                << parser->getCmd() << std::endl
+                << e.what();
         LOG_ERR << "Failed to process file: " << inFile << std::endl;
         return 1;
     }

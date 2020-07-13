@@ -79,8 +79,9 @@ std::string Code::getJump(const std::string& jumpMnemonic) {
 
 std::string Code::toBinary(uint16_t n) {
     if (n > MAX_INT) {
-        throw std::runtime_error("Cannot represent numbers larger than " 
-                                 + std::to_string(MAX_INT));
+        throw std::runtime_error("Input '" + std::to_string(n) + "' is too large! "  
+                                           + "Cannot represent numbers larger than " 
+                                           + std::to_string(MAX_INT));
     }
     std::bitset<16> b(n);
     return b.to_string();
@@ -129,6 +130,12 @@ bool Parser::sanitize(std::string& cmd) {
     auto isspace = [](char c){ return std::isspace(c); };
     cmd.erase(std::remove_if(cmd.begin(), cmd.end(), isspace), cmd.end());
     return !cmd.empty();
+}
+
+void Parser::reset() {
+    m_inFile.clear();
+    m_inFile.seekg(0, std::ios::beg);
+    m_lineno = 0;
 }
 
 bool Parser::advance(){
@@ -262,20 +269,42 @@ bool Parser::isCompMnemonic(const std::string& s) {
         );
 }
 
+void Parser::buildSymbolTable() {
+    std::string sym, dest, comp, jump, result;
+    while (hasMoreCommands()) {
+        advance();
+        if (!sanitize(m_cmd)){ continue; }
+        if ( isCommandA(m_cmd, sym) || isCommandC(m_cmd, dest, comp, jump) ) {
+            ++m_romCounter;
+        } else if ( isCommandL(m_cmd, sym) ) {
+            m_symbolTable.addEntry(sym, m_romCounter);
+        } else {
+            LOG << "Failed to parse command: " << m_cmd;
+            throw std::runtime_error("Unrecognized command type!");
+        }
+    }
+    reset();
+}
+
 void Parser::run() {
+    buildSymbolTable();
+    //m_inFile.seekg(0);
     std::string sym, dest, comp, jump, result;
     while (hasMoreCommands()) {
         advance();
         if (!sanitize(m_cmd)){ continue; }
         if ( isCommandA(m_cmd, sym) ) {
-            uint16_t d = Parser::str2num(sym);
+            uint16_t d;
+            if (!isNumeric(sym)) {
+                d = static_cast<uint16_t>(m_symbolTable.getAddress(sym));
+            } else {
+                d = Parser::str2num(sym);
+            }
             result = Code::toBinary(d);
         } else if ( isCommandC(m_cmd, dest, comp, jump) ) {
-            // LOG << "comp=" << comp << " dest=" << dest << " jump=" << jump;
             result = "111" + Code::getComp(comp) + Code::getDest(dest) + Code::getJump(jump);
         } else if ( isCommandL(m_cmd, sym) ) {
-            LOG << "Failed to parse command: " << m_cmd;
-            throw std::runtime_error("Command type not implemented yet: " + commandTypeString(CommandType::L_COMMAND));
+            continue; // skip pseudocommand
         } else {
             LOG << "Failed to parse command: " << m_cmd;
             throw std::runtime_error("Unrecognized command type!");
@@ -297,7 +326,48 @@ uint16_t Parser::str2num(const std::string& s) {
 
 void Parser::println(const std::string& s) {
     *m_outputStream << s << std::endl;
+    //std::cout << s << std::endl;
 }
 
 std::string Parser::getCmd() const{ return m_cmd; }
 uint64_t Parser::getLineNumber() const { return m_lineno; }
+
+SymbolTable::SymbolTable() {
+    m_ramCounter = 0;
+    
+    addEntry("SP",      0);
+    addEntry("LCL",     1);
+    addEntry("ARG",     2);
+    addEntry("THIS",    3);
+    addEntry("THAT",    4);
+    for (int i=0; i<16; i++) {
+        addEntry("R" + std::to_string(i), i);
+    }
+    addEntry("SCREEN", 16384);
+    addEntry("KBD", 24576);
+    m_ramCounter = 16;
+}
+
+bool SymbolTable::addEntry(const std::string& key, int address) {
+    auto result = m_map.insert(symbolEntry(key, address));
+    return result.second;
+}
+
+bool SymbolTable::addVariable(const std::string& key) {
+    if ( addEntry(key, m_ramCounter) ) {
+        ++m_ramCounter;
+        return true;
+    }
+    return false;
+}
+
+bool SymbolTable::contains(const std::string& key) const {
+    return m_map.find(key) != m_map.end();
+}
+
+int SymbolTable::getAddress(const std::string& symbol) {
+    if (!contains(symbol)) {
+        addVariable(symbol);
+    }
+    return m_map.at(symbol);
+}

@@ -20,8 +20,21 @@ namespace Hack{
 using charset = std::vector<char>;
 using stringset = std::vector<std::string>;
 using stringMap = std::map<std::string, std::string>;
+using symbolEntry = std::pair<std::string, int>;
 
-class Parser{
+class SymbolTable {
+public:
+    SymbolTable();
+    bool addEntry(const std::string& key, int address);
+    bool addVariable(const std::string& key);
+    bool contains(const std::string& key) const;
+    int getAddress(const std::string& symbol);
+private:
+    std::map<std::string, int> m_map;
+    uint16_t m_ramCounter;
+};
+
+class Parser {
 public:
 Parser();
 Parser(const std::string& inFile);
@@ -54,15 +67,19 @@ static const stringMap DEST_MNEMONICS;
 static const stringMap JUMP_MNEMONICS;
 static const stringMap COMP_MNEMONICS;
 void run();
+void buildSymbolTable();
 
 private:
 std::string m_cmd; /// current command 
 std::ifstream m_inFile; /// input filestream
 std::ofstream m_outFile; /// output filestream
 std::ostream* m_outputStream; 
+SymbolTable m_symbolTable; 
 bool readLine(std::string& line);
 void println(const std::string& s);
+void reset();
 uint64_t m_lineno = 0;
+uint16_t m_romCounter = 0;
 static bool isSymbolChar(const char x);
 static bool getDest(const std::string& s, std::string& dest);
 static bool getJump(const std::string& s, std::string& dest);
