@@ -288,18 +288,12 @@ void Parser::buildSymbolTable() {
 
 void Parser::run() {
     buildSymbolTable();
-    //m_inFile.seekg(0);
     std::string sym, dest, comp, jump, result;
     while (hasMoreCommands()) {
         advance();
         if (!sanitize(m_cmd)){ continue; }
         if ( isCommandA(m_cmd, sym) ) {
-            uint16_t d;
-            if (!isNumeric(sym)) {
-                d = static_cast<uint16_t>(m_symbolTable.getAddress(sym));
-            } else {
-                d = Parser::str2num(sym);
-            }
+            uint16_t d = (isNumeric(sym)) ? Parser::str2num(sym) : m_symbolTable.getAddress(sym);
             result = Code::toBinary(d);
         } else if ( isCommandC(m_cmd, dest, comp, jump) ) {
             result = "111" + Code::getComp(comp) + Code::getDest(dest) + Code::getJump(jump);
@@ -333,18 +327,16 @@ std::string Parser::getCmd() const{ return m_cmd; }
 uint64_t Parser::getLineNumber() const { return m_lineno; }
 
 SymbolTable::SymbolTable() {
-    m_ramCounter = 0;
-    
     addEntry("SP",      0);
     addEntry("LCL",     1);
     addEntry("ARG",     2);
     addEntry("THIS",    3);
     addEntry("THAT",    4);
-    for (int i=0; i<16; i++) {
-        addEntry("R" + std::to_string(i), i);
-    }
     addEntry("SCREEN", 16384);
     addEntry("KBD", 24576);
+    for (int i=0; i<16; i++) { 
+        addEntry("R" + std::to_string(i), i);
+    }
     m_ramCounter = 16;
 }
 
